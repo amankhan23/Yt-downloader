@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, jsonify, Response, stream_with_context
 from yt_dlp import YoutubeDL
-import gunicorn
 import requests
+import os  # Import the os module
 
 app = Flask(__name__)
 
@@ -19,7 +19,8 @@ def download():
         # Configure yt-dlp options
         ydl_opts = {
             "format": "best[ext=mp4]",
-            "nocheckcertificate": True  # Disable SSL verification
+            "nocheckcertificate": True,
+            "cookies-from-browser": "edge",  # Use cookies from Edge
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -28,13 +29,13 @@ def download():
             filename = ydl.prepare_filename(info_dict)  # Get the suggested filename
 
         # Get the content length from the video URL
-        with requests.get(video_url, stream=True, verify=False) as r: # added verify=False
+        with requests.get(video_url, stream=True, verify=False) as r:  # added verify=False
             r.raise_for_status()
             content_length = int(r.headers.get("Content-Length", 0))
 
         # Stream the video from the backend to the frontend
         def generate():
-            with requests.get(video_url, stream=True, verify=False) as r: # added verify=False
+            with requests.get(video_url, stream=True, verify=False) as r:  # added verify=False
                 r.raise_for_status()
                 for chunk in r.iter_content(chunk_size=8192):
                     if chunk:
@@ -53,5 +54,5 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ != "__main__": # important change
-    server = app # changed from app.run
+if __name__ != "__main__":  # important change
+    server = app  # changed from app.run
